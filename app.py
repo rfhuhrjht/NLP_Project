@@ -9,12 +9,12 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
-
+ # Load file .env và lấy ra gemini api key
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# read all pdf files and return text
+# Đọc tất cả các trang PDF và return text
 
 
 def get_pdf_text(pdf_docs):
@@ -25,8 +25,7 @@ def get_pdf_text(pdf_docs):
             text += page.extract_text()
     return text
 
-# split text into chunks
-
+# Split text thành các chunks
 
 def get_text_chunks(text):
     splitter = RecursiveCharacterTextSplitter(
@@ -34,12 +33,12 @@ def get_text_chunks(text):
     chunks = splitter.split_text(text)
     return chunks  # list of strings
 
-# get embeddings for each chunk
+# Embedding các chunks text đã split
 
 
 def get_vector_store(chunks):
     embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001")  # type: ignore
+        model="models/embedding-001") 
     vector_store = FAISS.from_texts(chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
@@ -63,18 +62,19 @@ def get_conversational_chain():
     chain = load_qa_chain(llm=model, chain_type="stuff", prompt=prompt)
     return chain
 
-
+# Xóa lịch sử chat
 def clear_chat_history():
     st.session_state.messages = [
         {"role": "assistant", "content": "Upload file PDF của bạn và hỏi câu hỏi"}]
 
-
+# Câu hỏi của người dùng
 def user_input(user_question):
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/embedding-001")  # type: ignore
 
     new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True) 
     docs = new_db.similarity_search(user_question)
+    
 
     chain = get_conversational_chain()
 
@@ -89,29 +89,23 @@ def main():
     st.set_page_config(
         page_title="NLP Project",
         
-
         
     )
 
-    # Sidebar for uploading PDF files
     with st.sidebar:
         st.title("Menu:")
         pdf_docs = st.file_uploader(
             "Upload file PDF và click Submit", accept_multiple_files=True)
         if st.button("Submit "):
-            with st.spinner("Đang tải..."):
+            with st.spinner("Đang tải lên"):
                 raw_text = get_pdf_text(pdf_docs)
                 text_chunks = get_text_chunks(raw_text)
                 get_vector_store(text_chunks)
                 st.success("Đã tải lên")
 
-    # Main content area for displaying chat messages
     st.title("Question Answering PDF")
     st.write("Welcome to the chat!")
     st.sidebar.button('Xóa lịch sử chat', on_click=clear_chat_history)
-
-    # Chat input
-    # Placeholder for chat messages
 
     if "messages" not in st.session_state.keys():
         st.session_state.messages = [
@@ -125,8 +119,7 @@ def main():
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.write(prompt)
-
-    #Hiển thị tin nhắn và phản hồi
+            
     if st.session_state.messages[-1]["role"] != "assistant":
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
