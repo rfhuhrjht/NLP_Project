@@ -9,7 +9,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
- # Load file .env và lấy ra gemini api key
+ # Load file .env và lấy ra gemini api k
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -17,17 +17,17 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 # Đọc tất cả các trang PDF và return text
 
 
-def get_pdf_text(pdf_docs):
-    text = ""
+def extract_pdf_text(pdf_docs):
+    content = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text += page.extract_text()
-    return text
+            content += page.extract_text()
+    return content
 
 # Split text thành các chunks
 
-def get_text_chunks(text):
+def split_text_into_chunks(text):
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=10000, chunk_overlap=1000)
     chunks = splitter.split_text(text)
@@ -40,10 +40,12 @@ def get_vector_store(chunks):
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/embedding-001") 
     vector_store = FAISS.from_texts(chunks, embedding=embeddings)
+    # Save file local faiss_index
     vector_store.save_local("faiss_index")
 
-
+# Thiết lập conversational question answering sử dụng googlge generative AI model
 def get_conversational_chain():
+    # Prompt mẫu
     prompt_template = """
     Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
     provided context just say, "answer is not available in the context", don't provide the wrong answer\n\n
@@ -98,8 +100,8 @@ def main():
             "Upload file PDF và click Submit", accept_multiple_files=True)
         if st.button("Submit "):
             with st.spinner("Đang tải lên"):
-                raw_text = get_pdf_text(pdf_docs)
-                text_chunks = get_text_chunks(raw_text)
+                raw_text = extract_pdf_text(pdf_docs)
+                text_chunks = split_text_into_chunks(raw_text)
                 get_vector_store(text_chunks)
                 st.success("Đã tải lên")
 
